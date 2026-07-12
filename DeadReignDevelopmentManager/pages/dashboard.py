@@ -190,17 +190,5 @@ def create_summary_card(parent, row, column, title, value):
 
 
 
-    # page_description = ctk.CTkLabel(
-    #     content_frame,
-    #     text="Project activity and progress will appear here.",
-    #     font=("Arial", 15)
-    # )
-    #
-    # page_description.grid(
-    #     row=1,
-    #     column=0,
-    #     padx=30,
-    #     pady=10,
-    #     sticky="nw"
-    # )
+
 

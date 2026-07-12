@@ -76,6 +76,16 @@ def update_task_status(task_id, new_status):
 
     save_tasks(tasks)
 
+def update_task(updated_task):
+    tasks = load_tasks()
+
+    for index, task in enumerate(tasks):
+        if task["id"] == updated_task["id"]:
+            tasks[index] = updated_task
+            break
+
+    save_tasks(tasks)
+
 
 
 

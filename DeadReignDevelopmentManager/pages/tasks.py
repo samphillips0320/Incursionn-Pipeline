@@ -7,12 +7,15 @@ load_systems,
 load_tasks,
 save_new_system,
 save_new_task,
+update_task,
 update_task_status
 )
 
 def show_tasks(content_frame, refresh_page):
+    editing_task_id = None
 
     def add_task():
+        nonlocal editing_task_id
         task_title = title_entry.get().strip()
         selected_system = system_combo.get().strip()
         selected_priority = priority_combo.get().strip()
@@ -26,24 +29,53 @@ def show_tasks(content_frame, refresh_page):
             )
             return
 
-        new_task = {
-            "id": str(uuid4()),
-            "title": task_title,
-            "system": selected_system,
-            "priority": selected_priority,
-            "status": selected_status,
-            "notes": task_notes,
-            "created_at": datetime.now().strftime("%m-%d-%y %H:%M:%S"),
-            "completed_at": None
-        }
 
-        save_new_task(new_task)
+        if editing_task_id is None:
+            task_data = {
+                "id": str(uuid4()),
+                "title": task_title,
+                "system": selected_system,
+                "priority": selected_priority,
+                "status": selected_status,
+                "notes": task_notes,
+                "created_at": datetime.now().strftime("%m-%d-%y %H:%M:%S"),
+                "completed_at": None
+            }
+
+            save_new_task(task_data)
+
+            messagebox.showinfo(
+                title="Task Added",
+                message="Your task was added successfully."
+            )
+
+        else:
+            tasks = load_tasks()
+
+            original_task = next(
+                task for task in tasks
+                if task["id"] == editing_task_id
+            )
+
+            task_data = {
+                "id": original_task["id"],
+                "title": task_title,
+                "system": selected_system,
+                "priority": selected_priority,
+                "status": selected_status,
+                "notes": task_notes,
+                "created_at": original_task["created_at"],
+                "completed_at": original_task["completed_at"]
+            }
+
+            update_task(task_data)
+
+            messagebox.showinfo(
+                title="Task Updated",
+                message="Your task was updated successfully."
+            )
+
         save_new_system(selected_system)
-
-        messagebox.showinfo(
-            title="Task Added",
-            message="Your task was added successfully."
-        )
 
         refresh_page("Tasks")
 
@@ -55,6 +87,27 @@ def show_tasks(content_frame, refresh_page):
 
         update_task_status(task_id, new_status)
         refresh_page("Tasks")
+
+    def toggle_task_details(details_frame):
+        if details_frame.winfo_viewable():
+            details_frame.grid_remove()
+        else:
+            details_frame.grid()
+
+    def edit_task(task):
+        nonlocal editing_task_id
+        editing_task_id = task["id"]
+        title_entry.delete(0, "end")
+        title_entry.insert(0, task["title"])
+
+        system_combo.set(task["system"])
+        priority_combo.set(task["priority"])
+        status_combo.set(task["status"])
+
+        notes_textbox.delete("1.0", "end")
+        notes_textbox.insert("1.0", task["notes"])
+
+        add_button.configure(text="Save Changes")
 
     page_title = ctk.CTkLabel(
         content_frame,
@@ -218,7 +271,7 @@ def show_tasks(content_frame, refresh_page):
 
     status_combo = ctk.CTkComboBox(
         add_task_frame,
-        values=["Not started", "In progress", "Clocked", "Complete"],
+        values=["Not started", "In progress", "Blocked", "Complete"],
         width=180,
         state="readonly"
     )
@@ -344,7 +397,7 @@ def show_tasks(content_frame, refresh_page):
             rowspan=3,
             padx=(15, 5),
             pady=15,
-            sticky="n"
+            sticky="nw"
         )
 
         title_font = (
@@ -354,40 +407,60 @@ def show_tasks(content_frame, refresh_page):
         task_title_label = ctk.CTkLabel(
             task_frame,
             text=task["title"],
-            font=title_font
+            font=title_font,
+            wraplength=750,
+            justify="left",
+            anchor="w",
+            cursor="hand2"
         )
 
         task_title_label.grid(
             row=0,
             column=1,
-            padx=10,
-            pady=(12, 2),
-            sticky="w"
+            padx=(10, 20),
+            pady=15,
+            sticky="ew"
+        )
+
+
+        details_frame = ctk.CTkFrame(
+            task_frame,
+            fg_color="transparent"
+        )
+
+        details_frame.grid(
+            row=1,
+            column=1,
+            padx=(10, 20),
+            pady=(0, 15),
+            sticky="ew"
         )
 
         details_text = (
-            f'System: {task["system"]} '
-            f'Priority: {task["priority"]} '
-            f'Status: {task["status"]}'
+            f'System: {task["system"]}\n'
+            f'Priority: {task["priority"]}\n'
+            f'Status: {task["status"]}\n'
+            f'Created: {task["created_at"]}'
         )
 
         details_label = ctk.CTkLabel(
-            task_frame,
+            details_frame,
             text=details_text,
-            font=("Arial", 12)
+            font=("Arial", 12),
+            justify="left"
         )
 
         details_label.grid(
-            row=1,
-            column=1,
-            padx=10,
-            pady=2,
+            row=0,
+            column=0,
             sticky="w"
         )
 
+
+
         if task["notes"]:
             notes_label = ctk.CTkLabel(
-                task_frame,
+                details_frame,
                 text=task["notes"],
                 font=("Arial", 12),
                 wraplength=650,
@@ -395,12 +468,45 @@ def show_tasks(content_frame, refresh_page):
             )
 
             notes_label.grid(
-                row=2,
-                column=1,
-                padx=10,
-                pady=(2, 12),
+                row=1,
+                column=0,
+                pady=(10, 0),
                 sticky="w"
             )
+
+        task_title_label.bind(
+            "<Button-1>",
+            lambda event,
+                   frame=details_frame,
+                   label=task_title_label: toggle_task_details(
+                frame
+            )
+        )
+
+        details_frame.grid_remove()
+
+        edit_button = ctk.CTkButton(
+            details_frame,
+            text="Edit Task",
+            width=110,
+            command=lambda selected_task=task: edit_task(selected_task)
+        )
+
+        edit_button.grid(
+            row=2,
+            column=0,
+            pady=(15, 0),
+            sticky="w"
+        )
+
+
+def toggle_task_details(details_frame, details_button):
+    if details_frame.winfo_viewable():
+        details_frame.grid_remove()
+        details_button.configure(text="Show Details")
+    else:
+        details_frame.grid()
+        details_button.configure(text="Hide Details")
 
 
 
