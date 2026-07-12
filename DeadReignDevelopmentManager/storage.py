@@ -6,6 +6,7 @@ DATA_DIR = APP_DIR / "data"
 
 ENTRIES_PATH = DATA_DIR / "development_entries.json"
 SYSTEMS_PATH = DATA_DIR / "systems.json"
+TASKS_PATH = DATA_DIR / "tasks.json"
 
 def ensure_data_directory():
     DATA_DIR.mkdir(exist_ok=True)
@@ -50,4 +51,31 @@ def save_development_entry(entry):
     entries = load_development_entries()
     entries.append(entry)
     save_json(ENTRIES_PATH, entries)
+
+def load_tasks():
+    return load_json(TASKS_PATH, [])
+
+def save_tasks(tasks):
+    save_json(
+        TASKS_PATH,
+        tasks
+    )
+
+def save_new_task(task):
+    tasks = load_tasks()
+    tasks.append(task)
+    save_tasks(tasks)
+
+def update_task_status(task_id, new_status):
+    tasks = load_tasks()
+
+    for task in tasks:
+        if task["id"] == task_id:
+            task["status"] = new_status
+            break
+
+    save_tasks(tasks)
+
+
+
 

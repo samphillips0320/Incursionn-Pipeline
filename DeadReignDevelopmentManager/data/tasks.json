@@ -1,0 +1,12 @@
+[
+    {
+        "id": "9affd9b9-b769-4963-9325-e08731029bb0",
+        "title": "Integrate LPAMG interface to BP_DRC",
+        "system": "Animations",
+        "priority": "High",
+        "status": "In progress",
+        "notes": "Suspect missing values in interface are causing issues with anims and montages not playing properly: configure interface values and retest to determine root cause.",
+        "created_at": "07-11-26 23:47:47",
+        "completed_at": null
+    }
+]

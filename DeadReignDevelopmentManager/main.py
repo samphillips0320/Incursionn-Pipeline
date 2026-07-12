@@ -16,14 +16,6 @@ ctk.set_default_color_theme("blue")
 
 #--- Page Switching Function ---#
 
-#--- OLD LOGIC ---#
-# def show_page(page_name):
-#     page_title.configure(text=page_name)
-#
-#     page_description.configure(
-#         text=f"This is the {page_name} page."
-#     )
-
 def clear_content():
     for widget in content_frame.winfo_children():
         widget.destroy()
@@ -34,7 +26,7 @@ def show_page(page_name):
     page_functions = {
         "Dashboard": lambda: show_dashboard(content_frame),
         "Development Log": lambda: show_development_log(content_frame, show_page),
-        "Tasks": lambda: show_tasks(content_frame),
+        "Tasks": lambda: show_tasks(content_frame, show_page),
         "Bugs": lambda: show_bugs(content_frame),
         "Ideas": lambda: show_ideas(content_frame),
         "Milestones": lambda: show_milestones(content_frame),
