@@ -11,7 +11,7 @@ update_task,
 update_task_status
 )
 
-def show_tasks(content_frame, refresh_page):
+def show_tasks(content_frame, refresh_page, search_text=""):
     editing_task_id = None
 
     def add_task():
@@ -108,6 +108,198 @@ def show_tasks(content_frame, refresh_page):
         notes_textbox.insert("1.0", task["notes"])
 
         add_button.configure(text="Save Changes")
+
+    def search_tasks():
+        render_task_list(
+            search_entry.get().strip()
+        )
+
+    def clear_search():
+        search_entry.delete(0, "end")
+        render_task_list()
+
+    def create_task_card(parent, task, row):
+        task_frame = ctk.CTkFrame(
+            parent,
+            corner_radius=10
+        )
+
+        task_frame.grid(
+            row=row,
+            column=0,
+            padx=10,
+            pady=7,
+            sticky="ew"
+        )
+
+        task_frame.grid_columnconfigure(1, weight=1)
+
+        complete_var = ctk.BooleanVar(
+            value=task["status"] == "Complete"
+        )
+
+        complete_checkbox = ctk.CTkCheckBox(
+            task_frame,
+            text="",
+            width=30,
+            variable=complete_var,
+            command=lambda task_id=task["id"],
+                           status=task["status"]: change_task_status(
+                task_id,
+                status
+            )
+        )
+
+        complete_checkbox.grid(
+            row=0,
+            column=0,
+            rowspan=2,
+            padx=(15, 5),
+            pady=15,
+            sticky="nw"
+        )
+
+        title_font = (
+            "Arial",
+            16,
+            "overstrike" if task["status"] == "Complete" else "bold"
+        )
+
+        task_title_label = ctk.CTkLabel(
+            task_frame,
+            text=task["title"],
+            font=title_font,
+            wraplength=750,
+            justify="left",
+            anchor="w",
+            cursor="hand2"
+        )
+
+        task_title_label.grid(
+            row=0,
+            column=1,
+            padx=(10, 20),
+            pady=15,
+            sticky="ew"
+        )
+
+        details_frame = ctk.CTkFrame(
+            task_frame,
+            fg_color="transparent"
+        )
+
+        details_frame.grid(
+            row=1,
+            column=1,
+            padx=(10, 20),
+            pady=(0, 15),
+            sticky="ew"
+        )
+
+        details_text = (
+            f'System: {task["system"]}\n'
+            f'Priority: {task["priority"]}\n'
+            f'Status: {task["status"]}\n'
+            f'Created: {task["created_at"]}'
+        )
+
+        details_label = ctk.CTkLabel(
+            details_frame,
+            text=details_text,
+            font=("Arial", 12),
+            justify="left"
+        )
+
+        details_label.grid(
+            row=0,
+            column=0,
+            sticky="w"
+        )
+
+        if task["notes"]:
+            task_notes_label = ctk.CTkLabel(
+                details_frame,
+                text=task["notes"],
+                font=("Arial", 12),
+                wraplength=700,
+                justify="left"
+            )
+
+            task_notes_label.grid(
+                row=1,
+                column=0,
+                pady=(10, 0),
+                sticky="w"
+            )
+
+        edit_button = ctk.CTkButton(
+            details_frame,
+            text="Edit Task",
+            width=110,
+            command=lambda selected_task=task: edit_task(
+                selected_task
+            )
+        )
+
+        edit_button.grid(
+            row=2,
+            column=0,
+            pady=(15, 0),
+            sticky="w"
+        )
+
+        task_title_label.bind(
+            "<Button-1>",
+            lambda event,
+                   frame=details_frame: toggle_task_details(frame)
+        )
+
+        details_frame.grid_remove()
+
+    def render_task_list(search_text=""):
+        for widget in task_list_frame.winfo_children():
+            widget.destroy()
+
+        tasks = load_tasks()
+
+        if search_text:
+            normalized_search = search_text.lower()
+
+            tasks = [
+                task
+                for task in tasks
+                if normalized_search in task["title"].lower()
+                   or normalized_search in task["notes"].lower()
+            ]
+
+        if not tasks:
+            if search_text:
+                empty_message = f'No tasks found for "{search_text}".'
+            else:
+                empty_message = "No tasks yet. The void is peaceful, but suspicious."
+
+            empty_label = ctk.CTkLabel(
+                task_list_frame,
+                text=empty_message,
+                font=("Arial", 14)
+            )
+
+            empty_label.grid(
+                row=0,
+                column=0,
+                padx=15,
+                pady=20,
+                sticky="w"
+            )
+
+            return
+
+        for index, task in enumerate(tasks):
+            create_task_card(
+                task_list_frame,
+                task,
+                index
+            )
 
     page_title = ctk.CTkLabel(
         content_frame,
@@ -342,171 +534,92 @@ def show_tasks(content_frame, refresh_page):
         sticky="w"
     )
 
-    tasks = load_tasks()
+    search_frame = ctk.CTkFrame(
+        page_frame,
+        fg_color="transparent"
+    )
 
-    if not tasks:
-        empty_label = ctk.CTkLabel(
-            page_frame,
-            text="No tasks yet. The void is peaceful, but suspicious,",
-            font=("Arial", 14)
-        )
+    search_frame.grid(
+        row=2,
+        column=0,
+        padx=10,
+        pady=(0, 10),
+        sticky="ew"
+    )
 
-        empty_label.grid(
-            row=2,
-            column=0,
-            padx=15,
-            pady=20,
-            sticky="w"
-        )
+    search_frame.grid_columnconfigure(0, weight=1)
 
-        return
+    search_entry = ctk.CTkEntry(
+        search_frame,
+        placeholder_text="Search task titles and notes..."
+    )
 
-    for index, task in enumerate(tasks, start=2):
-        task_frame = ctk.CTkFrame(
-            page_frame,
-            corner_radius=10
-        )
+    search_entry.grid(
+        row=0,
+        column=0,
+        padx=(5, 10),
+        sticky="ew"
+    )
 
-        task_frame.grid(
-            row=index,
-            column=0,
-            padx=10,
-            pady=7,
-            sticky="ew"
-        )
+    search_entry.insert(0, search_text)
 
-        task_frame.grid_columnconfigure(1, weight=1)
+    search_entry.bind(
+        "<Return>",
+        lambda event: search_tasks()
+    )
 
-        complete_var = ctk.BooleanVar(
-            value=task["status"] == "Complete"
-            )
+    search_entry.bind(
+        "<KeyRelease>",
+        lambda event: search_tasks()
+    )
 
-        complete_checkbox = ctk.CTkCheckBox(
-            task_frame,
-            text="",
-            width=30,
-            variable=complete_var,
-            command=lambda task_id=task["id"],
-            status=task["status"]: change_task_status(task_id, status)
+    search_button = ctk.CTkButton(
+        search_frame,
+        text="Search",
+        width=100,
+        command=search_tasks
+    )
 
-        )
+    search_button.grid(
+        row=0,
+        column=1,
+        padx=(0, 5)
+    )
 
-        complete_checkbox.grid(
-            row=0,
-            column=0,
-            rowspan=3,
-            padx=(15, 5),
-            pady=15,
-            sticky="nw"
-        )
+    clear_button = ctk.CTkButton(
+        search_frame,
+        text="Clear",
+        width=100,
+        command=clear_search
+    )
 
-        title_font = (
-            "Arial", 16, "overstrike" if task["status"] == "Complete" else "bold"
-        )
+    clear_button.grid(
+        row=0,
+        column=2,
+        padx=(5, 5)
+    )
 
-        task_title_label = ctk.CTkLabel(
-            task_frame,
-            text=task["title"],
-            font=title_font,
-            wraplength=750,
-            justify="left",
-            anchor="w",
-            cursor="hand2"
-        )
+    task_list_frame = ctk.CTkFrame(
+        page_frame,
+        fg_color="transparent"
+    )
 
-        task_title_label.grid(
-            row=0,
-            column=1,
-            padx=(10, 20),
-            pady=15,
-            sticky="ew"
-        )
+    task_list_frame.grid(
+        row=3,
+        column=0,
+        padx=0,
+        pady=(0, 10),
+        sticky="ew"
+    )
 
+    task_list_frame.grid_columnconfigure(0, weight=1)
 
-        details_frame = ctk.CTkFrame(
-            task_frame,
-            fg_color="transparent"
-        )
-
-        details_frame.grid(
-            row=1,
-            column=1,
-            padx=(10, 20),
-            pady=(0, 15),
-            sticky="ew"
-        )
-
-        details_text = (
-            f'System: {task["system"]}\n'
-            f'Priority: {task["priority"]}\n'
-            f'Status: {task["status"]}\n'
-            f'Created: {task["created_at"]}'
-        )
-
-        details_label = ctk.CTkLabel(
-            details_frame,
-            text=details_text,
-            font=("Arial", 12),
-            justify="left"
-        )
-
-        details_label.grid(
-            row=0,
-            column=0,
-            sticky="w"
-        )
+    render_task_list(search_text)
 
 
 
-        if task["notes"]:
-            notes_label = ctk.CTkLabel(
-                details_frame,
-                text=task["notes"],
-                font=("Arial", 12),
-                wraplength=650,
-                justify="left"
-            )
-
-            notes_label.grid(
-                row=1,
-                column=0,
-                pady=(10, 0),
-                sticky="w"
-            )
-
-        task_title_label.bind(
-            "<Button-1>",
-            lambda event,
-                   frame=details_frame,
-                   label=task_title_label: toggle_task_details(
-                frame
-            )
-        )
-
-        details_frame.grid_remove()
-
-        edit_button = ctk.CTkButton(
-            details_frame,
-            text="Edit Task",
-            width=110,
-            command=lambda selected_task=task: edit_task(selected_task)
-        )
-
-        edit_button.grid(
-            row=2,
-            column=0,
-            pady=(15, 0),
-            sticky="w"
-        )
 
 
-def toggle_task_details(details_frame, details_button):
-    if details_frame.winfo_viewable():
-        details_frame.grid_remove()
-        details_button.configure(text="Show Details")
-    else:
-        details_frame.grid()
-        details_button.configure(text="Hide Details")
 
 
 

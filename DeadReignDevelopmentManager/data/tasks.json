@@ -48,5 +48,35 @@
         "notes": "",
         "created_at": "07-12-26 00:46:59",
         "completed_at": null
+    },
+    {
+        "id": "c6559439-7b81-4a92-8a59-10eac30fe888",
+        "title": "Add weapon recoil",
+        "system": "Weapons",
+        "priority": "Low",
+        "status": "Not started",
+        "notes": "Currently exists on some weapons, but not others.",
+        "created_at": "07-12-26 12:54:08",
+        "completed_at": null
+    },
+    {
+        "id": "4dc40452-5196-4a1b-b0d8-d8b7e33f580b",
+        "title": "Retarget reload animation",
+        "system": "Animations",
+        "priority": "Medium",
+        "status": "Not started",
+        "notes": "This works on some weapons but not others, need to implement reload anim on weapon as well as character (character already complete).",
+        "created_at": "07-12-26 12:55:04",
+        "completed_at": null
+    },
+    {
+        "id": "b9f3811a-513a-46dd-b754-01f00056e024",
+        "title": "Fix inventory filtering",
+        "system": "Inventory",
+        "priority": "Low",
+        "status": "In progress",
+        "notes": "Test",
+        "created_at": "07-12-26 12:55:35",
+        "completed_at": null
     }
 ]
