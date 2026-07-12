@@ -109,14 +109,82 @@ def show_tasks(content_frame, refresh_page, search_text=""):
 
         add_button.configure(text="Save Changes")
 
-    def search_tasks():
+    def apply_task_filters():
+        update_clear_button()
+
         render_task_list(
             search_entry.get().strip()
         )
 
-    def clear_search():
+    def get_priority_rank(priority):
+        priority_ranks = {
+            "Critical": 4,
+            "High": 3,
+            "Medium": 2,
+            "Low": 1
+        }
+
+        return priority_ranks.get(priority, 0)
+
+    def get_priority_colors(priority):
+        priority_colors = {
+            "Critical": ("#8B1E1E", "#FFB3B3"),
+            "High": ("#8A4B08", "#FFD29B"),
+            "Medium": ("#1F4E79", "#B9DAF5"),
+            "Low": ("#3F4A52", "#D0D7DC")
+        }
+
+        return priority_colors.get(
+            priority,
+            ("#3F4A52", "#D0D7DC")
+        )
+
+    def get_status_colors(status):
+        status_colors = {
+            "Blocked": ("#7A1F1F", "#FFBABA"),
+            "In progress": ("#7A5A00", "#FFE08A"),
+            "Complete": ("#1F6B3A", "#B8F0C8"),
+            "Not started": ("#41474D", "#D4D8DC")
+        }
+
+        return status_colors.get(
+            status,
+            ("#41474D", "#D4D8DC")
+        )
+
+    def clear_filters():
         search_entry.delete(0, "end")
+
+        system_filter_combo.set("All Systems")
+        priority_filter_combo.set("All Priorities")
+        status_filter_combo.set("All Statuses")
+        sort_combo.set("Newest first")
+
+        update_clear_button()
         render_task_list()
+
+    def update_clear_button():
+        search_is_active = bool(
+            search_entry.get().strip()
+        )
+
+        filters_are_active = (
+                system_filter_combo.get() != "All Systems"
+                or priority_filter_combo.get() != "All Priorities"
+                or status_filter_combo.get() != "All Statuses"
+                or sort_combo.get() != "Newest first"
+        )
+
+        if search_is_active or filters_are_active:
+            clear_search_button.place(
+                relx=1.0,
+                rely=0.5,
+                x=-8,
+                anchor="e"
+            )
+        else:
+            clear_search_button.place_forget()
+
 
     def create_task_card(parent, task, row):
         task_frame = ctk.CTkFrame(
@@ -165,11 +233,26 @@ def show_tasks(content_frame, refresh_page, search_text=""):
             "overstrike" if task["status"] == "Complete" else "bold"
         )
 
-        task_title_label = ctk.CTkLabel(
+        title_row_frame = ctk.CTkFrame(
             task_frame,
+            fg_color="transparent"
+        )
+
+        title_row_frame.grid(
+            row=0,
+            column=1,
+            padx=(10, 20),
+            pady=(15, 10),
+            sticky="ew"
+        )
+
+        title_row_frame.grid_columnconfigure(0, weight=1)
+
+        task_title_label = ctk.CTkLabel(
+            title_row_frame,
             text=task["title"],
             font=title_font,
-            wraplength=750,
+            wraplength=550,
             justify="left",
             anchor="w",
             cursor="hand2"
@@ -177,10 +260,50 @@ def show_tasks(content_frame, refresh_page, search_text=""):
 
         task_title_label.grid(
             row=0,
-            column=1,
-            padx=(10, 20),
-            pady=15,
+            column=0,
+            padx=(0, 10),
             sticky="ew"
+        )
+
+        priority_background, priority_text = get_priority_colors(
+            task.get("priority", "")
+        )
+
+        priority_chip = ctk.CTkLabel(
+            title_row_frame,
+            text=task.get("priority", ""),
+            width=75,
+            height=26,
+            corner_radius=8,
+            fg_color=priority_background,
+            text_color=priority_text,
+            font=("Arial", 11, "bold")
+        )
+
+        priority_chip.grid(
+            row=0,
+            column=1,
+            padx=(0, 6)
+        )
+
+        status_background, status_text = get_status_colors(
+            task.get("status", "")
+        )
+
+        status_chip = ctk.CTkLabel(
+            title_row_frame,
+            text=task.get("status", ""),
+            width=90,
+            height=26,
+            corner_radius=8,
+            fg_color=status_background,
+            text_color=status_text,
+            font=("Arial", 11, "bold")
+        )
+
+        status_chip.grid(
+            row=0,
+            column=2
         )
 
         details_frame = ctk.CTkFrame(
@@ -198,8 +321,6 @@ def show_tasks(content_frame, refresh_page, search_text=""):
 
         details_text = (
             f'System: {task["system"]}\n'
-            f'Priority: {task["priority"]}\n'
-            f'Status: {task["status"]}\n'
             f'Created: {task["created_at"]}'
         )
 
@@ -262,26 +383,163 @@ def show_tasks(content_frame, refresh_page, search_text=""):
 
         tasks = load_tasks()
 
-        if search_text:
-            normalized_search = search_text.lower()
+        normalized_search = search_text.lower()
 
-            tasks = [
-                task
-                for task in tasks
-                if normalized_search in task["title"].lower()
-                   or normalized_search in task["notes"].lower()
-            ]
+        selected_system = system_filter_combo.get()
+        selected_priority = priority_filter_combo.get()
+        selected_status = status_filter_combo.get()
+
+        filtered_tasks = []
+
+        for task in tasks:
+            task_title = task.get("title", "")
+            task_notes = task.get("notes", "")
+            task_system = task.get("system", "")
+            task_priority = task.get("priority", "")
+            task_status = task.get("status", "")
+
+            matches_search = (
+                    not normalized_search
+                    or normalized_search in task_title.lower()
+                    or normalized_search in task_notes.lower()
+            )
+
+            matches_system = (
+                    selected_system == "All Systems"
+                    or task_system == selected_system
+            )
+
+            matches_priority = (
+                    selected_priority == "All Priorities"
+                    or task_priority == selected_priority
+            )
+
+            matches_status = (
+                    selected_status == "All Statuses"
+                    or task_status == selected_status
+            )
+
+            if (
+                    matches_search
+                    and matches_system
+                    and matches_priority
+                    and matches_status
+            ):
+                filtered_tasks.append(task)
+
+        tasks = filtered_tasks
+
+        selected_sort = sort_combo.get()
+
+        def is_complete(task):
+            return task.get("status", "") == "Complete"
+
+        if selected_sort == "Newest first":
+            tasks.sort(
+                key=lambda task: (
+                    is_complete(task),
+                    -datetime.strptime(
+                        task["created_at"],
+                        "%m-%d-%y %H:%M:%S"
+                    ).timestamp()
+                )
+            )
+
+        elif selected_sort == "Oldest first":
+            tasks.sort(
+                key=lambda task: (
+                    is_complete(task),
+                    datetime.strptime(
+                        task["created_at"],
+                        "%m-%d-%y %H:%M:%S"
+                    ).timestamp()
+                )
+            )
+
+        elif selected_sort == "Priority: highest first":
+            tasks.sort(
+                key=lambda task: (
+                    is_complete(task),
+                    -get_priority_rank(
+                        task.get("priority", "")
+                    )
+                )
+            )
+
+        elif selected_sort == "Priority: lowest first":
+            tasks.sort(
+                key=lambda task: (
+                    is_complete(task),
+                    get_priority_rank(
+                        task.get("priority", "")
+                    )
+                )
+            )
+
+        elif selected_sort == "Status":
+            status_order = {
+                "Blocked": 0,
+                "In progress": 1,
+                "Not started": 2,
+                "Complete": 3
+            }
+
+            tasks.sort(
+                key=lambda task: (
+                    is_complete(task),
+                    status_order.get(
+                        task.get("status", ""),
+                        99
+                    )
+                )
+            )
+
+        elif selected_sort == "System":
+            tasks.sort(
+                key=lambda task: (
+                    is_complete(task),
+                    task.get("system", "").lower()
+                )
+            )
+
+        elif selected_sort == "Title: A-Z":
+            tasks.sort(
+                key=lambda task: (
+                    is_complete(task),
+                    task.get("title", "").lower()
+                )
+            )
 
         if not tasks:
+            active_filters = []
+
             if search_text:
-                empty_message = f'No tasks found for "{search_text}".'
+                active_filters.append(f'Search: "{search_text}"')
+
+            if selected_system != "All Systems":
+                active_filters.append(f"System: {selected_system}")
+
+            if selected_priority != "All Priorities":
+                active_filters.append(f"Priority: {selected_priority}")
+
+            if selected_status != "All Statuses":
+                active_filters.append(f"Status: {selected_status}")
+
+            if active_filters:
+                empty_message = (
+                        "No tasks match the selected filters:\n"
+                        + " | ".join(active_filters)
+                )
             else:
-                empty_message = "No tasks yet. The void is peaceful, but suspicious."
+                empty_message = (
+                    "No tasks yet. The void is peaceful, but suspicious."
+                )
 
             empty_label = ctk.CTkLabel(
                 task_list_frame,
                 text=empty_message,
-                font=("Arial", 14)
+                font=("Arial", 14),
+                justify="left"
             )
 
             empty_label.grid(
@@ -300,6 +558,7 @@ def show_tasks(content_frame, refresh_page, search_text=""):
                 task,
                 index
             )
+
 
     page_title = ctk.CTkLabel(
         content_frame,
@@ -549,35 +808,59 @@ def show_tasks(content_frame, refresh_page, search_text=""):
 
     search_frame.grid_columnconfigure(0, weight=1)
 
-    search_entry = ctk.CTkEntry(
+    search_box_frame = ctk.CTkFrame(
         search_frame,
-        placeholder_text="Search task titles and notes..."
+        fg_color="transparent"
     )
 
-    search_entry.grid(
+    search_box_frame.grid(
         row=0,
         column=0,
         padx=(5, 10),
         sticky="ew"
     )
 
+    search_box_frame.grid_columnconfigure(0, weight=1)
+
+    search_entry = ctk.CTkEntry(
+        search_box_frame,
+        placeholder_text="Search task titles and notes..."
+    )
+
+    search_entry.grid(
+        row=0,
+        column=0,
+        sticky="ew"
+    )
+
+    clear_search_button = ctk.CTkButton(
+        search_box_frame,
+        text="×",
+        width=28,
+        height=24,
+        corner_radius=6,
+        fg_color="transparent",
+        hover_color=("gray80", "gray30"),
+        command=clear_filters
+    )
+
     search_entry.insert(0, search_text)
 
     search_entry.bind(
         "<Return>",
-        lambda event: search_tasks()
+        lambda event: apply_task_filters()
     )
 
     search_entry.bind(
         "<KeyRelease>",
-        lambda event: search_tasks()
+        lambda event: apply_task_filters()
     )
 
     search_button = ctk.CTkButton(
         search_frame,
         text="Search",
         width=100,
-        command=search_tasks
+        command=apply_task_filters
     )
 
     search_button.grid(
@@ -586,18 +869,110 @@ def show_tasks(content_frame, refresh_page, search_text=""):
         padx=(0, 5)
     )
 
-    clear_button = ctk.CTkButton(
-        search_frame,
-        text="Clear",
-        width=100,
-        command=clear_search
+
+    filter_frame = ctk.CTkFrame(
+        page_frame,
+        fg_color="transparent"
     )
 
-    clear_button.grid(
+    filter_frame.grid(
+        row=3,
+        column=0,
+        padx=15,
+        pady=(0, 10),
+        sticky="ew"
+    )
+
+    filter_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
+
+    system_filter_values = [
+        "All Systems",
+        *load_systems()
+    ]
+
+    system_filter_combo = ctk.CTkComboBox(
+        filter_frame,
+        values=system_filter_values,
+        state="readonly",
+        command=lambda selected_value: apply_task_filters()
+    )
+
+    system_filter_combo.grid(
+        row=0,
+        column=0,
+        padx=(0, 5),
+        sticky="ew"
+    )
+
+    system_filter_combo.set("All Systems")
+
+    priority_filter_combo = ctk.CTkComboBox(
+        filter_frame,
+        values=[
+            "All Priorities",
+            "Low",
+            "Medium",
+            "High",
+            "Critical"
+        ],
+        state="readonly",
+        command=lambda selected_value: apply_task_filters()
+    )
+
+    priority_filter_combo.grid(
+        row=0,
+        column=1,
+        padx=5,
+        sticky="ew"
+    )
+
+    priority_filter_combo.set("All Priorities")
+
+    status_filter_combo = ctk.CTkComboBox(
+        filter_frame,
+        values=[
+            "All Statuses",
+            "Not started",
+            "In progress",
+            "Blocked",
+            "Complete"
+        ],
+        state="readonly",
+        command=lambda selected_value: apply_task_filters()
+    )
+
+    status_filter_combo.grid(
         row=0,
         column=2,
-        padx=(5, 5)
+        padx=5,
+        sticky="ew"
     )
+
+    status_filter_combo.set("All Statuses")
+
+    sort_combo = ctk.CTkComboBox(
+        filter_frame,
+        values=[
+            "Newest first",
+            "Oldest first",
+            "Priority: highest first",
+            "Priority: lowest first",
+            "Status",
+            "System",
+            "Title: A-Z"
+        ],
+        state="readonly",
+        command=lambda selected_value: apply_task_filters()
+    )
+
+    sort_combo.grid(
+        row=0,
+        column=3,
+        padx=(5, 0),
+        sticky="ew"
+    )
+
+    sort_combo.set("Newest first")
 
     task_list_frame = ctk.CTkFrame(
         page_frame,
@@ -605,7 +980,7 @@ def show_tasks(content_frame, refresh_page, search_text=""):
     )
 
     task_list_frame.grid(
-        row=3,
+        row=4,
         column=0,
         padx=0,
         pady=(0, 10),
@@ -613,6 +988,8 @@ def show_tasks(content_frame, refresh_page, search_text=""):
     )
 
     task_list_frame.grid_columnconfigure(0, weight=1)
+
+    update_clear_button()
 
     render_task_list(search_text)
 
