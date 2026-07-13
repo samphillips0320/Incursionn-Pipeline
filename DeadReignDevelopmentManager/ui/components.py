@@ -754,3 +754,79 @@ def create_progress_card(
         )
 
     return card
+
+def make_hoverable(
+    widget: ctk.CTkFrame,
+    *,
+    normal_color: str | None = None,
+    hover_color: str | None = None,
+) -> None:
+    """Add a subtle hover effect to a frame."""
+    resolved_normal = normal_color or theme.CARD_BG
+    resolved_hover = hover_color or theme.CARD_BG_HOVER
+
+    def handle_enter(_event=None):
+        if widget.winfo_exists():
+            widget.configure(
+                fg_color=resolved_hover,
+            )
+
+    def handle_leave(_event=None):
+        if widget.winfo_exists():
+            widget.configure(
+                fg_color=resolved_normal,
+            )
+
+    def bind_widget(target):
+        target.bind(
+            "<Enter>",
+            handle_enter,
+            add="+",
+        )
+        target.bind(
+            "<Leave>",
+            handle_leave,
+            add="+",
+        )
+
+        for child in target.winfo_children():
+            bind_widget(child)
+
+    widget.after_idle(
+        lambda: bind_widget(widget)
+    )
+
+def make_clickable(
+    widget: ctk.CTkBaseClass,
+    command: Callable[[], Any],
+) -> None:
+    """
+    Make a widget and its current children clickable.
+
+    Clickable widgets also use the hand cursor so their behavior is
+    visually obvious before the user clicks.
+    """
+
+    def handle_click(_event=None):
+        command()
+
+    def bind_widget(target):
+        try:
+            target.configure(
+                cursor="hand2",
+            )
+        except (TypeError, ValueError):
+            pass
+
+        target.bind(
+            "<Button-1>",
+            handle_click,
+            add="+",
+        )
+
+        for child in target.winfo_children():
+            bind_widget(child)
+
+    widget.after_idle(
+        lambda: bind_widget(widget)
+    )

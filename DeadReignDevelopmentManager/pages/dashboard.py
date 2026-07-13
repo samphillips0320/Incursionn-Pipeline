@@ -1,11 +1,6 @@
-# pages/dashboard.py
-
 from __future__ import annotations
-
 from typing import Any
-
 import customtkinter as ctk
-
 from pages.dashboard_data import (
     DashboardData,
     load_dashboard_data,
@@ -22,7 +17,25 @@ from ui.components import (
     create_small_label,
 )
 from ui.layout import StandardPage
+from ui.components import (
+    create_body_label,
+    create_card,
+    create_card_title,
+    create_page_title,
+    create_primary_button,
+    create_progress_bar,
+    create_secondary_button,
+    create_section_title,
+    create_small_label,
+    make_hoverable,
+    make_clickable
+)
+from ui.charts import (
+    CircularProgressRing,
+    LineChart,
+)
 
+from datetime import datetime
 
 BOARD_CONFIGURATION = [
     ("Ideas", theme.WARNING),
@@ -50,7 +63,11 @@ def show_dashboard(
         expand=True,
     )
 
-    _build_page_header(page)
+    _build_page_header(
+        page,
+        dashboard_data,
+    )
+
     _build_dashboard_content(
         page,
         dashboard_data,
@@ -65,8 +82,11 @@ def show_dashboard(
 
 def _build_page_header(
     page: StandardPage,
+    data: DashboardData,
 ) -> None:
-    """Create the Dashboard page heading."""
+    """Create the Dashboard heading and current-work summary."""
+
+    page.header.grid_columnconfigure(0, weight=1)
 
     title = create_page_title(
         page.header,
@@ -78,9 +98,19 @@ def _build_page_header(
         sticky="w",
     )
 
+    if data.current_focus == "No active task":
+        subtitle_text = (
+            "Welcome back. No active tasks are currently waiting."
+        )
+    else:
+        subtitle_text = (
+            f"Welcome back. Current focus: "
+            f"{data.current_system} — {data.current_focus}"
+        )
+
     subtitle = create_small_label(
         page.header,
-        "Your command center for Dead Reign: Outbreak.",
+        subtitle_text,
         muted=True,
     )
     subtitle.grid(
@@ -88,6 +118,22 @@ def _build_page_header(
         column=0,
         pady=(4, 0),
         sticky="w",
+    )
+
+    refreshed_text = datetime.now().strftime(
+        "Refreshed %I:%M %p"
+    ).lstrip("0")
+
+    refreshed_label = create_small_label(
+        page.header,
+        refreshed_text,
+        muted=True,
+    )
+    refreshed_label.grid(
+        row=0,
+        column=1,
+        rowspan=2,
+        sticky="e",
     )
 
     page.toolbar.grid_remove()
@@ -101,7 +147,7 @@ def _build_dashboard_content(
     page: StandardPage,
     data: DashboardData,
 ) -> None:
-    """Build the live Dashboard content."""
+    """Build the live interactive Dashboard content."""
 
     main = page.main
     main.grid_columnconfigure(0, weight=1)
@@ -112,16 +158,21 @@ def _build_dashboard_content(
         row=0,
     )
 
+    _build_quick_actions(
+        main,
+        row=1,
+    )
+
     _build_task_board(
         main,
         data,
-        row=1,
+        row=2,
     )
 
     _build_bottom_row(
         main,
         data,
-        row=2,
+        row=3,
     )
 
 
@@ -157,6 +208,124 @@ def _build_top_row(
 
     _grid_equal_cards(cards)
 
+def _build_quick_actions(
+    parent: ctk.CTkBaseClass,
+    *,
+    row: int,
+) -> None:
+    """Create the Dashboard's primary navigation shortcuts."""
+
+    card = create_card(parent)
+    card.grid(
+        row=row,
+        column=0,
+        pady=(0, theme.SECTION_GAP),
+        sticky="ew",
+    )
+
+    card.grid_columnconfigure(0, weight=1)
+    card.grid_columnconfigure(1, weight=0)
+    card.grid_columnconfigure(2, weight=0)
+    card.grid_columnconfigure(3, weight=0)
+    card.grid_columnconfigure(4, weight=0)
+
+    title_frame = ctk.CTkFrame(
+        card,
+        fg_color=theme.TRANSPARENT,
+        corner_radius=0,
+    )
+    title_frame.grid(
+        row=0,
+        column=0,
+        padx=theme.CARD_PADDING_X,
+        pady=theme.CARD_PADDING_Y,
+        sticky="w",
+    )
+
+    create_card_title(
+        title_frame,
+        "QUICK ACTIONS",
+    ).grid(
+        row=0,
+        column=0,
+        sticky="w",
+    )
+
+    create_small_label(
+        title_frame,
+        "Jump directly into your most common workflows.",
+        muted=True,
+    ).grid(
+        row=1,
+        column=0,
+        pady=(3, 0),
+        sticky="w",
+    )
+
+    new_task_button = create_primary_button(
+        card,
+        "+ New Task",
+        command=lambda: _navigate_to(
+            card,
+            "task_board",
+        ),
+        width=115,
+    )
+    new_task_button.grid(
+        row=0,
+        column=1,
+        padx=(8, 4),
+        pady=theme.CARD_PADDING_Y,
+    )
+
+    new_log_button = create_secondary_button(
+        card,
+        "+ Dev Log",
+        command=lambda: _navigate_to(
+            card,
+            "development_log",
+        ),
+        width=115,
+    )
+    new_log_button.grid(
+        row=0,
+        column=2,
+        padx=4,
+        pady=theme.CARD_PADDING_Y,
+    )
+
+    systems_button = create_secondary_button(
+        card,
+        "Systems",
+        command=lambda: _navigate_to(
+            card,
+            "systems",
+        ),
+        width=105,
+    )
+    systems_button.grid(
+        row=0,
+        column=3,
+        padx=4,
+        pady=theme.CARD_PADDING_Y,
+    )
+
+    roadmap_button = create_secondary_button(
+        card,
+        "Roadmap",
+        command=lambda: _navigate_to(
+            card,
+            "roadmap",
+        ),
+        width=105,
+    )
+    roadmap_button.grid(
+        row=0,
+        column=4,
+        padx=(4, theme.CARD_PADDING_X),
+        pady=theme.CARD_PADDING_Y,
+    )
+
 
 def _create_project_card(
     parent: ctk.CTkBaseClass,
@@ -166,17 +335,57 @@ def _create_project_card(
 
     card = create_card(parent)
     card.grid_columnconfigure(0, weight=1)
+    card.grid_columnconfigure(1, weight=0)
 
     _add_card_header(
         card,
         "PROJECT OVERVIEW",
+        columnspan=2,
     )
 
-    _add_caption_value(
+    details = ctk.CTkFrame(
         card,
+        fg_color=theme.TRANSPARENT,
+        corner_radius=0,
+    )
+    details.grid(
         row=2,
-        caption="Current Milestone",
-        value="Vertical Slice",
+        column=0,
+        padx=(theme.CARD_PADDING_X, 8),
+        pady=(8, 4),
+        sticky="nsew",
+    )
+    details.grid_columnconfigure(0, weight=1)
+
+    create_small_label(
+        details,
+        "Current Milestone",
+        muted=True,
+    ).grid(
+        row=0,
+        column=0,
+        sticky="w",
+    )
+
+    create_body_label(
+        details,
+        "Vertical Slice",
+        bold=True,
+    ).grid(
+        row=1,
+        column=0,
+        pady=(2, 12),
+        sticky="w",
+    )
+
+    create_small_label(
+        details,
+        "Current Focus",
+        muted=True,
+    ).grid(
+        row=2,
+        column=0,
+        sticky="w",
     )
 
     focus_text = data.current_focus
@@ -187,57 +396,31 @@ def _create_project_card(
             f"{data.current_focus}"
         )
 
-    _add_caption_value(
-        card,
-        row=4,
-        caption="Current Focus",
-        value=focus_text,
-        wraplength=240,
-    )
-
-    progress_header = ctk.CTkFrame(
-        card,
-        fg_color=theme.TRANSPARENT,
-        corner_radius=0,
-    )
-    progress_header.grid(
-        row=6,
-        column=0,
-        padx=theme.CARD_PADDING_X,
-        pady=(16, 6),
-        sticky="ew",
-    )
-    progress_header.grid_columnconfigure(0, weight=1)
-
     create_body_label(
-        progress_header,
-        "Overall Progress",
+        details,
+        focus_text,
         bold=True,
+        wraplength=160,
     ).grid(
-        row=0,
+        row=3,
         column=0,
+        pady=(2, 0),
         sticky="w",
     )
 
-    create_body_label(
-        progress_header,
-        _format_percentage(data.completion_progress),
-        bold=True,
-    ).grid(
-        row=0,
-        column=1,
-        sticky="e",
-    )
-
-    progress_bar = create_progress_bar(
+    progress_ring = CircularProgressRing(
         card,
         progress=data.completion_progress,
+        size=115,
+        thickness=10,
+        label="Complete",
     )
-    progress_bar.grid(
-        row=7,
-        column=0,
-        padx=theme.CARD_PADDING_X,
-        sticky="ew",
+    progress_ring.grid(
+        row=2,
+        column=1,
+        padx=(0, theme.CARD_PADDING_X),
+        pady=(10, 4),
+        sticky="ne",
     )
 
     stats = ctk.CTkFrame(
@@ -246,10 +429,11 @@ def _create_project_card(
         corner_radius=theme.CARD_CORNER_RADIUS,
     )
     stats.grid(
-        row=8,
+        row=3,
         column=0,
+        columnspan=2,
         padx=theme.CARD_PADDING_X,
-        pady=(12, 12),
+        pady=(8, 12),
         sticky="ew",
     )
 
@@ -273,15 +457,22 @@ def _create_project_card(
     button = create_primary_button(
         card,
         "Continue Where I Left Off",
+        command=lambda: _navigate_to(
+            card,
+            "task_board",
+        ),
         width=210,
     )
     button.grid(
-        row=9,
+        row=4,
         column=0,
+        columnspan=2,
         padx=theme.CARD_PADDING_X,
         pady=(0, theme.CARD_PADDING_Y),
         sticky="ew",
     )
+
+    make_hoverable(card)
 
     return card
 
@@ -315,13 +506,15 @@ def _create_current_tasks_card(
         )
     else:
         for index, task in enumerate(
-            data.current_tasks,
-            start=2,
+                data.current_tasks,
+                start=2,
         ):
-            _create_current_task_row(
+            task_row = _create_current_task_row(
                 card,
                 task,
-            ).grid(
+            )
+
+            task_row.grid(
                 row=index,
                 column=0,
                 padx=theme.CARD_PADDING_X,
@@ -329,19 +522,31 @@ def _create_current_tasks_card(
                 sticky="ew",
             )
 
+            make_clickable(
+                task_row,
+                lambda selected_task=task: _open_task(
+                    task_row,
+                    selected_task,
+                ),
+            )
+
     link = _create_orange_link(
         card,
         "View All Tasks  →",
     )
-    link.grid(
-        row=8,
-        column=0,
-        padx=theme.CARD_PADDING_X,
-        pady=(12, theme.CARD_PADDING_Y),
-        sticky="w",
-    )
+
+    make_hoverable(card)
+
+    # make_clickable(
+    #     card,
+    #     lambda: _navigate_to(
+    #         card,
+    #         "task_board",
+    #     ),
+    # )
 
     return card
+
 
 
 def _create_latest_log_card(
@@ -476,15 +681,27 @@ def _create_latest_log_card(
         sticky="w",
     )
 
-    _create_orange_link(
+    log_link = _create_orange_link(
         card,
         "Read Full Log  →",
-    ).grid(
+    )
+
+    log_link.grid(
         row=8,
         column=0,
         padx=theme.CARD_PADDING_X,
         pady=(14, theme.CARD_PADDING_Y),
         sticky="w",
+    )
+
+    make_hoverable(card)
+
+    make_clickable(
+        log_link,
+        lambda: _navigate_to(
+            card,
+            "development_log",
+        ),
     )
 
     return card
@@ -494,7 +711,7 @@ def _create_progress_card(
     parent: ctk.CTkBaseClass,
     data: DashboardData,
 ) -> ctk.CTkFrame:
-    """Create a live project progress summary."""
+    """Create the live task activity and completion panel."""
 
     card = create_card(parent)
     card.grid_columnconfigure(0, weight=1)
@@ -504,102 +721,98 @@ def _create_progress_card(
         "PROGRESS OVERVIEW",
     )
 
-    percentage = _format_percentage(
-        data.completion_progress
-    )
-
-    percentage_label = ctk.CTkLabel(
+    heading = ctk.CTkFrame(
         card,
-        text=percentage,
-        font=(theme.FONT_FAMILY, 30, "bold"),
-        text_color=theme.ACCENT_ORANGE,
+        fg_color=theme.TRANSPARENT,
+        corner_radius=0,
     )
-    percentage_label.grid(
+    heading.grid(
         row=2,
         column=0,
         padx=theme.CARD_PADDING_X,
-        pady=(14, 0),
+        pady=(10, 5),
+        sticky="ew",
+    )
+    heading.grid_columnconfigure(0, weight=1)
+
+    create_body_label(
+        heading,
+        "Tasks Added",
+        bold=True,
+    ).grid(
+        row=0,
+        column=0,
         sticky="w",
     )
 
     create_small_label(
-        card,
-        "Task-based project completion",
+        heading,
+        "Last 14 days",
         muted=True,
     ).grid(
+        row=0,
+        column=1,
+        sticky="e",
+    )
+
+    chart = LineChart(
+        card,
+        values=data.task_creation_values,
+        labels=data.task_creation_labels,
+        line_color=theme.ACCENT_ORANGE,
+        fill_color=theme.ACCENT_ORANGE_DARK,
+        height=125,
+    )
+    chart.grid(
         row=3,
         column=0,
         padx=theme.CARD_PADDING_X,
-        sticky="w",
-    )
-
-    progress_bar = create_progress_bar(
-        card,
-        progress=data.completion_progress,
-        height=10,
-    )
-    progress_bar.grid(
-        row=4,
-        column=0,
-        padx=theme.CARD_PADDING_X,
-        pady=(18, 16),
         sticky="ew",
     )
 
-    stats = ctk.CTkFrame(
+    status_frame = ctk.CTkFrame(
         card,
         fg_color=theme.INPUT_BG,
         corner_radius=theme.CARD_CORNER_RADIUS,
     )
-    stats.grid(
-        row=5,
+    status_frame.grid(
+        row=4,
         column=0,
         padx=theme.CARD_PADDING_X,
+        pady=(12, theme.CARD_PADDING_Y),
         sticky="ew",
     )
 
     for column in range(3):
-        stats.grid_columnconfigure(
+        status_frame.grid_columnconfigure(
             column,
             weight=1,
         )
 
     _add_compact_stat(
-        stats,
+        status_frame,
         column=0,
-        title="Total Tasks",
-        value=str(data.total_tasks),
+        title="Completion",
+        value=_format_percentage(
+            data.completion_progress
+        ),
     )
 
     _add_compact_stat(
-        stats,
+        status_frame,
         column=1,
         title="In Progress",
         value=str(data.in_progress_tasks),
     )
 
     _add_compact_stat(
-        stats,
+        status_frame,
         column=2,
         title="Systems",
         value=str(len(data.systems)),
     )
 
-    note = create_small_label(
-        card,
-        (
-            "Deeper charts and development trends "
-            "arrive in Sprint 2C."
-        ),
-        muted=True,
-    )
-    note.grid(
-        row=6,
-        column=0,
-        padx=theme.CARD_PADDING_X,
-        pady=(14, theme.CARD_PADDING_Y),
-        sticky="w",
-    )
+    make_hoverable(card)
 
     return card
 
@@ -651,6 +864,10 @@ def _build_task_board(
     create_primary_button(
         heading,
         "+ Add Task",
+        command=lambda: _navigate_to(
+            board,
+            "task_board",
+        ),
         width=105,
     ).grid(
         row=0,
@@ -862,6 +1079,16 @@ def _create_task_card(
         sticky="e",
     )
 
+    make_hoverable(card)
+
+    make_clickable(
+        card,
+        lambda: _open_task(
+            card,
+            task,
+        ),
+    )
+
     return card
 
 
@@ -1030,16 +1257,26 @@ def _create_activity_card(
                 or entry["system"]
             )
 
-            create_small_label(
+            activity_label = create_small_label(
                 card,
                 text,
                 muted=False,
-            ).grid(
+            )
+
+            activity_label.grid(
                 row=index,
                 column=0,
                 padx=theme.CARD_PADDING_X,
                 pady=5,
                 sticky="w",
+            )
+
+            make_clickable(
+                activity_label,
+                lambda: _navigate_to(
+                    card,
+                    "development_log",
+                ),
             )
 
     return card
@@ -1144,6 +1381,8 @@ def _grid_equal_cards(
 def _add_card_header(
     parent: ctk.CTkBaseClass,
     title: str,
+    *,
+    columnspan: int = 1,
 ) -> None:
     """Create a consistent card title and divider."""
 
@@ -1153,6 +1392,7 @@ def _add_card_header(
     ).grid(
         row=0,
         column=0,
+        columnspan=columnspan,
         padx=theme.CARD_PADDING_X,
         pady=(theme.CARD_PADDING_Y, 8),
         sticky="w",
@@ -1166,6 +1406,7 @@ def _add_card_header(
     ).grid(
         row=1,
         column=0,
+        columnspan=columnspan,
         padx=theme.CARD_PADDING_X,
         sticky="ew",
     )
@@ -1381,6 +1622,8 @@ def _create_simple_summary_card(
             sticky="e",
         )
 
+        make_hoverable(card)
+
     return card
 
 
@@ -1425,3 +1668,50 @@ def _get_log_detail(
         "No additional notes were recorded.",
     )
 
+def _navigate_to(
+    widget: ctk.CTkBaseClass,
+    page_key: str,
+) -> None:
+    """
+    Ask the main application window to display another page.
+
+    The root application owns page routing, so the Dashboard does not
+    need to import main.py or know how pages are constructed.
+    """
+
+    application = widget.winfo_toplevel()
+
+    show_page = getattr(
+        application,
+        "show_page",
+        None,
+    )
+
+    if callable(show_page):
+        show_page(page_key)
+    else:
+        print(
+            f"Unable to navigate to page: {page_key}"
+        )
+
+def _open_task(
+    widget: ctk.CTkBaseClass,
+    task: dict[str, Any],
+) -> None:
+    """
+    Open the Task Board for a selected task.
+
+    The task ID is stored on the root application so the Task Board can
+    automatically select it once that page supports task details.
+    """
+
+    application = widget.winfo_toplevel()
+
+    application.pending_task_id = task.get(
+        "id"
+    )
+
+    _navigate_to(
+        widget,
+        "task_board",
+    )

@@ -38,6 +38,14 @@ class DashboardData:
         default_factory=dict
     )
 
+    task_creation_values: list[int] = field(
+        default_factory=list
+    )
+
+    task_creation_labels: list[str] = field(
+        default_factory=list
+    )
+
 
 STATUS_COLUMN_MAP = {
     "idea": "Ideas",
@@ -160,6 +168,13 @@ def load_dashboard_data() -> DashboardData:
     # Entries are appended by storage.py, so the final entry is the newest.
     latest_log = entries[-1] if entries else None
 
+    task_creation_values, task_creation_labels = (
+        build_task_creation_history(
+            tasks,
+            days=14,
+        )
+    )
+
     return DashboardData(
         tasks=tasks,
         development_entries=entries,
@@ -175,7 +190,55 @@ def load_dashboard_data() -> DashboardData:
         current_tasks=current_tasks,
         latest_log=latest_log,
         board_columns=board_columns,
+        task_creation_values=task_creation_values,
+        task_creation_labels=task_creation_labels,
     )
+
+def build_task_creation_history(
+    tasks: list[dict[str, Any]],
+    *,
+    days: int = 14,
+) -> tuple[list[int], list[str]]:
+    """Count tasks created during the most recent days."""
+    from datetime import timedelta
+
+    today = datetime.now().date()
+
+    date_range = [
+        today - timedelta(days=offset)
+        for offset in reversed(range(days))
+    ]
+
+    counts = {
+        date_value: 0
+        for date_value in date_range
+    }
+
+    for task in tasks:
+        created_value = task.get(
+            "created_sort_value",
+            datetime.min,
+        )
+
+        if created_value == datetime.min:
+            continue
+
+        created_date = created_value.date()
+
+        if created_date in counts:
+            counts[created_date] += 1
+
+    values = [
+        counts[date_value]
+        for date_value in date_range
+    ]
+
+    labels = [
+        date_value.strftime("%b %d")
+        for date_value in date_range
+    ]
+
+    return values, labels
 
 
 def normalize_task(task: dict[str, Any]) -> dict[str, Any]:
@@ -274,5 +337,7 @@ def parse_task_datetime(value: Any) -> datetime:
             )
         except ValueError:
             continue
+
+
 
     return datetime.min
