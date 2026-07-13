@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import customtkinter as ctk
 
-from UI import theme
-from UI.components import (
+from ui import theme
+from ui.components import (
     create_body_label,
     create_card,
     create_card_title,

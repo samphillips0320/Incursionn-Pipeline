@@ -1,5 +1,3 @@
-# ui/header.py
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -7,8 +5,8 @@ from typing import Any
 
 import customtkinter as ctk
 
-from UI import theme
-from UI.components import (
+from ui import theme
+from ui.components import (
     create_icon_button,
     create_search_box,
 )

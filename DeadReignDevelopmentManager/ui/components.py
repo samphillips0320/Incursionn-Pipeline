@@ -5,7 +5,7 @@ from typing import Any
 
 import customtkinter as ctk
 
-from UI import theme
+from ui import theme
 
 
 # =========================================================

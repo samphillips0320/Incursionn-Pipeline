@@ -16,9 +16,9 @@ from pages.roadmap import show_roadmap
 from pages.settings import show_settings
 from pages.systems import show_systems
 from pages.task_board import show_task_board
-from UI import theme
-from UI.header import AppHeader
-from UI.sidebar import Sidebar
+from ui import theme
+from ui.header import AppHeader
+from ui.sidebar import Sidebar
 
 
 class DRPipelineApp(ctk.CTk):
@@ -38,7 +38,7 @@ class DRPipelineApp(ctk.CTk):
 
         self.title("DR Pipeline Management")
         self.geometry("1500x900")
-        self.minsize(1180, 720)
+        self.minsize(1280, 760)
 
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")

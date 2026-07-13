@@ -1,5 +1,3 @@
-# ui/sidebar.py
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -7,7 +5,8 @@ from typing import Any
 
 import customtkinter as ctk
 
-from UI import theme
+from ui import theme
+from ui.resources import ImageManager
 
 
 class Sidebar(ctk.CTkFrame):
@@ -15,10 +14,10 @@ class Sidebar(ctk.CTkFrame):
     Persistent application sidebar.
 
     Responsibilities:
-        - Display the Incursionn Studios branding
+        - Display Incursionn Studios branding
         - Display navigation buttons
         - Highlight the active page
-        - Notify the main application when navigation changes
+        - Notify the application when navigation changes
     """
 
     NAV_ITEMS = [
@@ -52,6 +51,8 @@ class Sidebar(ctk.CTkFrame):
         self.active_page = initial_page
         self.nav_buttons: dict[str, ctk.CTkButton] = {}
 
+        self.logo_image: ctk.CTkImage | None = None
+
         self.grid_propagate(False)
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
@@ -59,7 +60,7 @@ class Sidebar(ctk.CTkFrame):
         self._build_branding()
         self._build_separator()
         self._build_navigation()
-        self._build_footer()
+        self._build_version_label()
 
         self.set_active(initial_page)
 
@@ -68,7 +69,7 @@ class Sidebar(ctk.CTkFrame):
     # =====================================================
 
     def _build_branding(self) -> None:
-        """Create the Incursionn Studios title area."""
+        """Create the Incursionn Studios logo area."""
         self.brand_frame = ctk.CTkFrame(
             self,
             fg_color=theme.TRANSPARENT,
@@ -77,57 +78,40 @@ class Sidebar(ctk.CTkFrame):
         self.brand_frame.grid(
             row=0,
             column=0,
-            padx=18,
-            pady=(20, 14),
+            padx=8,
+            pady=(16, 14),
             sticky="ew",
         )
         self.brand_frame.grid_columnconfigure(0, weight=1)
 
-        self.logo_mark = ctk.CTkLabel(
-            self.brand_frame,
-            text="I",
-            width=38,
-            height=38,
-            fg_color=theme.ACCENT_ORANGE,
-            text_color=theme.TEXT_PRIMARY,
-            corner_radius=7,
-            font=(theme.FONT_FAMILY, 20, "bold"),
+        self.logo_image = ImageManager.load_logo(
+            "incursionn_logo.png",
+            width=215,
+            height=112,
         )
-        self.logo_mark.grid(
+
+        if self.logo_image is not None:
+            self.logo_label = ctk.CTkLabel(
+                self.brand_frame,
+                text="",
+                image=self.logo_image,
+                fg_color=theme.TRANSPARENT,
+            )
+        else:
+            self.logo_label = ctk.CTkLabel(
+                self.brand_frame,
+                text="INCURSIONN\nSTUDIOS",
+                font=(theme.FONT_FAMILY, 15, "bold"),
+                text_color=theme.TEXT_PRIMARY,
+                justify="left",
+                anchor="w",
+            )
+
+        self.logo_label.grid(
             row=0,
             column=0,
-            rowspan=2,
-            padx=(0, 10),
-            sticky="w",
+            sticky="ew",
         )
-
-        self.brand_name = ctk.CTkLabel(
-            self.brand_frame,
-            text="INCURSIONN",
-            font=(theme.FONT_FAMILY, 15, "bold"),
-            text_color=theme.TEXT_PRIMARY,
-            anchor="w",
-        )
-        self.brand_name.grid(
-            row=0,
-            column=1,
-            sticky="sw",
-        )
-
-        self.brand_subtitle = ctk.CTkLabel(
-            self.brand_frame,
-            text="STUDIOS",
-            font=(theme.FONT_FAMILY, 10, "bold"),
-            text_color=theme.TEXT_MUTED,
-            anchor="w",
-        )
-        self.brand_subtitle.grid(
-            row=1,
-            column=1,
-            sticky="nw",
-        )
-
-        self.brand_frame.grid_columnconfigure(1, weight=1)
 
     def _build_separator(self) -> None:
         """Create the divider beneath the branding."""
@@ -140,7 +124,7 @@ class Sidebar(ctk.CTkFrame):
         separator.grid(
             row=1,
             column=0,
-            padx=14,
+            padx=12,
             sticky="ew",
         )
 
@@ -156,17 +140,21 @@ class Sidebar(ctk.CTkFrame):
         self.nav_frame.grid(
             row=2,
             column=0,
-            padx=(10, 6),
-            pady=(14, 8),
+            padx=(8, 4),
+            pady=(12, 6),
             sticky="nsew",
         )
         self.nav_frame.grid_columnconfigure(0, weight=1)
 
-        for row_index, (label, page_key) in enumerate(self.NAV_ITEMS):
+        for row_index, (label, page_key) in enumerate(
+            self.NAV_ITEMS
+        ):
             button = ctk.CTkButton(
                 self.nav_frame,
                 text=label,
-                command=lambda key=page_key: self._handle_navigation(key),
+                command=lambda key=page_key: (
+                    self._handle_navigation(key)
+                ),
                 height=theme.NAV_BUTTON_HEIGHT,
                 fg_color=theme.TRANSPARENT,
                 hover_color=theme.CARD_BG_HOVER,
@@ -185,60 +173,21 @@ class Sidebar(ctk.CTkFrame):
 
             self.nav_buttons[page_key] = button
 
-    def _build_footer(self) -> None:
-        """Create the project footer at the bottom of the sidebar."""
-        self.footer = ctk.CTkFrame(
+    def _build_version_label(self) -> None:
+        """Display the application version at the bottom."""
+        self.version_label = ctk.CTkLabel(
             self,
-            fg_color=theme.TRANSPARENT,
-            corner_radius=0,
-        )
-        self.footer.grid(
-            row=3,
-            column=0,
-            padx=14,
-            pady=(4, 16),
-            sticky="ew",
-        )
-        self.footer.grid_columnconfigure(0, weight=1)
-
-        separator = ctk.CTkFrame(
-            self.footer,
-            height=1,
-            fg_color=theme.CARD_BORDER,
-            corner_radius=0,
-        )
-        separator.grid(
-            row=0,
-            column=0,
-            pady=(0, 12),
-            sticky="ew",
-        )
-
-        project_label = ctk.CTkLabel(
-            self.footer,
-            text="CURRENT PROJECT",
-            font=theme.FONT_SMALL_BOLD,
+            text="DR PIPELINE MANAGEMENT v0.1.0",
+            font=theme.FONT_SMALL,
             text_color=theme.TEXT_MUTED,
             anchor="w",
         )
-        project_label.grid(
-            row=1,
+        self.version_label.grid(
+            row=3,
             column=0,
-            sticky="w",
-        )
-
-        project_name = ctk.CTkLabel(
-            self.footer,
-            text="Dead Reign: Outbreak",
-            font=theme.FONT_BODY_BOLD,
-            text_color=theme.TEXT_PRIMARY,
-            anchor="w",
-        )
-        project_name.grid(
-            row=2,
-            column=0,
-            pady=(3, 0),
-            sticky="w",
+            padx=12,
+            pady=(4, 12),
+            sticky="ew",
         )
 
     # =====================================================

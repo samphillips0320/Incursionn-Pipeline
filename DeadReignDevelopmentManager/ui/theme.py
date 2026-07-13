@@ -61,8 +61,8 @@ CARD_GAP = 12
 CARD_PADDING_X = 16
 CARD_PADDING_Y = 14
 
-SIDEBAR_WIDTH = 220
-HEADER_HEIGHT = 76
+SIDEBAR_WIDTH = 215
+HEADER_HEIGHT = 72
 DETAIL_PANEL_WIDTH = 330
 
 
@@ -117,7 +117,7 @@ SYSTEM_COLORS = {
     "Weapons": "#EF4444",
     "Animation": "#FF6A00",
     "AI": "#84CC16",
-    "UI": "#0EA5E9",
+    "ui": "#0EA5E9",
     "World": "#06B6D4",
     "Audio": "#9B5DE5",
     "Optimization": "#8B949E",

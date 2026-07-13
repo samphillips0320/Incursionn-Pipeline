@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import customtkinter as ctk
 
-from UI import theme
+from ui import theme
 
 
 class StandardPage(ctk.CTkFrame):

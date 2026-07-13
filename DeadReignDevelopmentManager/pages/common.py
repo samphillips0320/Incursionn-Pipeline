@@ -7,16 +7,16 @@ from typing import Any
 
 import customtkinter as ctk
 
-from UI import theme
-from UI.components import (
+from ui import theme
+from ui.components import (
     create_empty_state,
     create_page_title,
     create_primary_button,
     create_search_box,
     create_small_label,
 )
-from UI.detail_panel import DetailPanel
-from UI.layout import StandardPage
+from ui.detail_panel import DetailPanel
+from ui.layout import StandardPage
 
 
 def build_placeholder_page(
