@@ -1,198 +1,240 @@
+# main.py
+
+from __future__ import annotations
+
+from collections.abc import Callable
+
 import customtkinter as ctk
+
+from pages.analytics import show_analytics
+from pages.assets import show_assets
 from pages.dashboard import show_dashboard
 from pages.dev_log import show_development_log
-from pages.tasks import show_tasks
-from pages.bugs import show_bugs
-from pages.ideas import show_ideas
-from pages.milestones import show_milestones
-from pages.polish_backlog import show_polish_backlog
+from pages.knowledge_base import show_knowledge_base
+from pages.release_checklist import show_release_checklist
+from pages.roadmap import show_roadmap
+from pages.settings import show_settings
+from pages.systems import show_systems
+from pages.task_board import show_task_board
+from UI import theme
+from UI.header import AppHeader
+from UI.sidebar import Sidebar
 
 
-#------------ Application Settings ---------------#
+class DRPipelineApp(ctk.CTk):
+    """
+    Main application window for DR Pipeline Management.
 
-ctk.set_appearance_mode("Dark")
-ctk.set_default_color_theme("blue")
+    Responsibilities:
+        - Create the persistent application shell
+        - Own the header and sidebar
+        - Route navigation to the correct page
+        - Replace the active page safely
+        - Handle temporary application-wide controls
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.title("DR Pipeline Management")
+        self.geometry("1500x900")
+        self.minsize(1180, 720)
+
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
+
+        self.configure(
+            fg_color=theme.APP_BG,
+        )
+
+        self.current_page_key = "dashboard"
+        self.current_page = None
+
+        self.page_routes: dict[str, Callable] = {
+            "dashboard": show_dashboard,
+            "task_board": show_task_board,
+            "roadmap": show_roadmap,
+            "development_log": show_development_log,
+            "systems": show_systems,
+            "knowledge_base": show_knowledge_base,
+            "assets": show_assets,
+            "analytics": show_analytics,
+            "release_checklist": show_release_checklist,
+            "settings": show_settings,
+        }
+
+        self._configure_root_grid()
+        self._build_sidebar()
+        self._build_main_area()
+        self._build_header()
+        self._build_page_container()
+
+        self.show_page(self.current_page_key)
+
+    # =====================================================
+    # ROOT LAYOUT
+    # =====================================================
+
+    def _configure_root_grid(self) -> None:
+        """Configure the main application rows and columns."""
+        self.grid_columnconfigure(
+            0,
+            weight=0,
+            minsize=theme.SIDEBAR_WIDTH,
+        )
+        self.grid_columnconfigure(
+            1,
+            weight=1,
+        )
+        self.grid_rowconfigure(
+            0,
+            weight=1,
+        )
+
+    def _build_sidebar(self) -> None:
+        """Create the persistent left navigation sidebar."""
+        self.sidebar = Sidebar(
+            self,
+            on_navigate=self.show_page,
+            initial_page=self.current_page_key,
+        )
+        self.sidebar.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+        )
+
+    def _build_main_area(self) -> None:
+        """Create the area containing the header and active page."""
+        self.main_area = ctk.CTkFrame(
+            self,
+            fg_color=theme.APP_BG,
+            corner_radius=0,
+        )
+        self.main_area.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+        )
+
+        self.main_area.grid_columnconfigure(
+            0,
+            weight=1,
+        )
+        self.main_area.grid_rowconfigure(
+            1,
+            weight=1,
+        )
+
+    def _build_header(self) -> None:
+        """Create the persistent application header."""
+        self.header = AppHeader(
+            self.main_area,
+            on_global_search=self.handle_global_search,
+            on_notifications=self.handle_notifications,
+            on_profile=self.handle_profile,
+        )
+        self.header.grid(
+            row=0,
+            column=0,
+            sticky="ew",
+        )
+
+        separator = ctk.CTkFrame(
+            self.main_area,
+            height=1,
+            fg_color=theme.CARD_BORDER,
+            corner_radius=0,
+        )
+        separator.grid(
+            row=0,
+            column=0,
+            pady=(theme.HEADER_HEIGHT - 1, 0),
+            sticky="sew",
+        )
+
+    def _build_page_container(self) -> None:
+        """Create the container where routed pages are displayed."""
+        self.page_container = ctk.CTkFrame(
+            self.main_area,
+            fg_color=theme.APP_BG,
+            corner_radius=0,
+        )
+        self.page_container.grid(
+            row=1,
+            column=0,
+            sticky="nsew",
+        )
+
+        self.page_container.grid_columnconfigure(
+            0,
+            weight=1,
+        )
+        self.page_container.grid_rowconfigure(
+            0,
+            weight=1,
+        )
+
+    # =====================================================
+    # PAGE ROUTING
+    # =====================================================
+
+    def show_page(self, page_key: str) -> None:
+        """
+        Display the requested page.
+
+        The previous page is destroyed before the new page is created.
+        This keeps the widget tree clean and avoids overlapping pages.
+        """
+        page_builder = self.page_routes.get(page_key)
+
+        if page_builder is None:
+            print(f"Unknown page route: {page_key}")
+            return
+
+        if self.current_page is not None:
+            self.current_page.destroy()
+            self.current_page = None
+
+        self.current_page_key = page_key
+        self.sidebar.set_active(page_key)
+        self.header.clear_search()
+
+        self.current_page = page_builder(
+            self.page_container,
+        )
+
+    # =====================================================
+    # HEADER ACTIONS
+    # =====================================================
+
+    def handle_global_search(self, query: str) -> None:
+        """
+        Handle global search submissions.
+
+        This is temporary shell behavior. A full cross-project search
+        system will replace it later.
+        """
+        if not query:
+            return
+
+        print(
+            f"Global search requested for: {query}"
+        )
+
+    def handle_notifications(self) -> None:
+        """Temporary notification-button behavior."""
+        print(
+            "Notifications opened."
+        )
+
+    def handle_profile(self) -> None:
+        """Temporary profile-button behavior."""
+        print(
+            "Profile opened."
+        )
 
 
-#--- Page Switching Function ---#
-
-def clear_content():
-    for widget in content_frame.winfo_children():
-        widget.destroy()
-
-def show_page(page_name, search_text=""):
-    clear_content()
-
-    page_functions = {
-        "Dashboard": lambda: show_dashboard(content_frame),
-        "Development Log": lambda: show_development_log(content_frame, show_page),
-        "Tasks": lambda: show_tasks(content_frame, show_page, search_text),
-        "Bugs": lambda: show_bugs(content_frame),
-        "Ideas": lambda: show_ideas(content_frame),
-        "Milestones": lambda: show_milestones(content_frame),
-        "Polish Backlog": lambda: show_polish_backlog(content_frame)
-    }
-
-    selected_page = page_functions.get(page_name)
-
-    if selected_page:
-        selected_page()
-
-
-
-#--- Main Window -----#
-
-app = ctk.CTk()
-
-app.title("Dead Reign Development Manager")
-app.geometry("1200x750")
-app.minsize(900, 600)
-
-app.grid_rowconfigure(1, weight=1)
-app.grid_columnconfigure(1, weight=1)
-
-
-#--- Header Frame ---#
-
-header_frame = ctk.CTkFrame(
-    app,
-    height=90,
-    corner_radius=0
-)
-
-header_frame.grid(
-    row=0,
-    column=0,
-    columnspan=2,
-    sticky="nsew"
-)
-
-title_label = ctk.CTkLabel(
-    header_frame,
-    text="Dead Reign Development Manager",
-    font=("Arial", 28, "bold")
-)
-
-title_label.pack(pady=(18,2))
-
-subtitle_label = ctk.CTkLabel(
-    header_frame,
-    text="Development Logs • Tasks • Bugs • Ideas • Milestones",
-    font=("Arial", 14)
-)
-
-#--- Navigation Frame ---#
-
-navigation_frame = ctk.CTkFrame(
-    app,
-    width=220,
-    corner_radius=0
-)
-
-navigation_frame.grid(
-    row=1,
-    column=0,
-    sticky="nsew"
-)
-
-navigation_frame.grid_propagate(False)
-
-navigation_title = ctk.CTkLabel(
-    navigation_frame,
-    text="Navigation",
-    font=("Arial", 13, "bold")
-)
-
-navigation_title.pack(
-    pady=(25, 15),
-    padx=20
-)
-
-dashboard_button = ctk.CTkButton(
-    navigation_frame,
-    text="Dashboard",
-    width=180,
-    command=lambda: show_page("Dashboard")
-)
-
-dashboard_button.pack(pady=6)
-
-dev_log_button = ctk.CTkButton(
-    navigation_frame,
-    text="Development Log",
-    width=180,
-    command=lambda: show_page("Development Log")
-)
-
-dev_log_button.pack(pady=6)
-
-tasks_button = ctk.CTkButton(
-    navigation_frame,
-    text="Tasks",
-    width=180,
-    command=lambda: show_page("Tasks")
-)
-
-tasks_button.pack(pady=6)
-
-bugs_button = ctk.CTkButton(
-    navigation_frame,
-    text="Bugs",
-    width=180,
-    command=lambda: show_page("Bugs")
-)
-
-bugs_button.pack(pady=6)
-
-ideas_button = ctk.CTkButton(
-    navigation_frame,
-    text="Ideas",
-    width=180,
-    command=lambda: show_page("Ideas")
-)
-
-ideas_button.pack(pady=6)
-
-milestones_button = ctk.CTkButton(
-    navigation_frame,
-    text="Milestones",
-    width=180,
-    command=lambda: show_page("Milestones")
-)
-
-milestones_button.pack(pady=6)
-
-polish_button = ctk.CTkButton(
-    navigation_frame,
-    text="Polish",
-    width=180,
-    command=lambda: show_page("Polish Backlog")
-)
-
-polish_button.pack(pady=6)
-
-#--- Main Content Frame ---#
-
-content_frame = ctk.CTkFrame(
-    app,
-    corner_radius=12
-)
-
-content_frame.grid(
-    row=1,
-    column=1,
-    pady=(20),
-    padx=(20),
-    sticky="nsew"
-)
-
-content_frame.grid_rowconfigure(1, weight=1)
-content_frame.grid_columnconfigure(0, weight=1)
-
-
-#--- Start The Application ---#
-
-show_page("Dashboard")
-
-
-app.mainloop()
+if __name__ == "__main__":
+    app = DRPipelineApp()
+    app.mainloop()
