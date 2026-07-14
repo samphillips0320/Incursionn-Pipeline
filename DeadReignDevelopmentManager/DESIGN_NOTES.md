@@ -1,0 +1,1 @@
+We'll need to circle back and address the size and structure of task tiles. They currently grow without a stopping point. Maybe add an expand button to view the rest and sort?

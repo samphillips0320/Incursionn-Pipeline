@@ -63,7 +63,7 @@ def save_tasks(tasks):
 
 def save_new_task(task):
     tasks = load_tasks()
-    tasks.append(task)
+    tasks.append(dict(task))
     save_tasks(tasks)
 
 def update_task_status(task_id, new_status):
@@ -85,6 +85,19 @@ def update_task(updated_task):
             break
 
     save_tasks(tasks)
+
+def delete_task(task_id):
+    tasks = load_tasks()
+
+    filtered_tasks = [
+        task
+        for task in tasks
+        if task.get("id") != task_id
+    ]
+
+    save_tasks(
+        filtered_tasks
+    )
 
 
 
